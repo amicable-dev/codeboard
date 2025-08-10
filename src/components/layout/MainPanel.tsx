@@ -2,9 +2,18 @@ import { useState, useRef, useEffect } from "react";
 import EditorPanel from "./EditorPanel";
 import VisualPanel from "./VisualPanel";
 
+/* ----------------- COLOR PALETTE ----------------- */
+const COLORS = {
+  gold: "#FFD700",
+  deepGold: "#DAA520",
+  cream: "#FFF8E7",
+  maroon: "#800000",
+};
+
+/* ----------------- SNAP SETTINGS ----------------- */
 const SNAP_THRESHOLD = 50;
 
-// Type definitions
+/* ----------------- TYPE DEFINITIONS ----------------- */
 interface Position {
   x: number;
   y: number;
@@ -33,294 +42,196 @@ interface DraggablePanelProps {
   className?: string;
 }
 
-// Simple Drawing Panel - you can replace this with your own component
+/* ----------------- DRAWING PANEL ----------------- */
 const DrawingPanel: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState<boolean>(false);
-  const [currentColor, setCurrentColor] = useState<string>('#000000');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [currentColor, setCurrentColor] = useState("#000000");
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.lineWidth = 2;
   }, []);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const ctx = canvasRef.current!.getContext("2d")!;
     ctx.beginPath();
-    ctx.moveTo(x, y);
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const ctx = canvasRef.current!.getContext("2d")!;
     ctx.strokeStyle = currentColor;
-    ctx.lineTo(x, y);
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
     ctx.stroke();
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
   return (
-    <div className="w-full h-full bg-white flex flex-col">
-      <div className="bg-green-600 text-white px-4 py-2 text-sm font-medium flex items-center justify-between">
+    <div className="w-full h-full flex flex-col bg-cream border-t border-gold">
+      <div
+        className="px-4 py-2 text-sm font-semibold flex items-center justify-between"
+        style={{ backgroundColor: COLORS.maroon, color: COLORS.gold }}
+      >
         <span>🎨 Drawing Board</span>
         <div className="flex items-center space-x-2">
           <input
             type="color"
             value={currentColor}
             onChange={(e) => setCurrentColor(e.target.value)}
-            className="w-6 h-6 rounded border-none cursor-pointer"
+            className="w-6 h-6 rounded cursor-pointer border-none"
           />
           <button
-            onClick={clearCanvas}
-            className="px-2 py-1 bg-green-500 hover:bg-green-400 rounded text-xs"
+            onClick={() => {
+              const ctx = canvasRef.current?.getContext("2d");
+              if (ctx && canvasRef.current)
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }}
+            className="px-2 py-1 rounded text-xs"
+            style={{
+              backgroundColor: COLORS.gold,
+              color: COLORS.maroon,
+              fontWeight: "bold",
+            }}
           >
             Clear
           </button>
         </div>
       </div>
-      <div className="flex-1 p-4 flex items-center justify-center bg-gray-50">
+      <div className="flex-1 p-4 flex items-center justify-center bg-cream">
         <canvas
           ref={canvasRef}
           width="200"
           height="150"
-          className="border border-gray-300 rounded-lg bg-white cursor-crosshair shadow-sm"
+          className="border border-gold rounded-lg bg-white cursor-crosshair shadow-md"
           onMouseDown={startDrawing}
           onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
+          onMouseUp={() => setIsDrawing(false)}
+          onMouseLeave={() => setIsDrawing(false)}
         />
       </div>
     </div>
   );
 };
 
+/* ----------------- DRAGGABLE PANEL ----------------- */
 const DraggablePanel: React.FC<DraggablePanelProps> = ({
   children,
   position,
   onPositionChange,
   onSnapPreview,
   containerBounds,
-  className = ""
+  className = "",
 }) => {
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isResizing, setIsResizing] = useState<boolean>(false);
-  const [resizeStart, setResizeStart] = useState<{ x: number; y: number; width: number; height: number }>({ 
-    x: 0, 
-    y: 0, 
-    width: 0, 
-    height: 0 
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
   });
-  const panelRef = useRef<HTMLDivElement>(null);
 
   const getSnapZone = (x: number, y: number, width: number, height: number): SnapZone | null => {
-    if (!containerBounds) return null;
-    
     const W = containerBounds.width;
     const H = containerBounds.height;
-
-    // Check Corners First
-    if (x < SNAP_THRESHOLD && y < SNAP_THRESHOLD) {
-      return { x: 0, y: 0, w: W / 2, h: H / 2 };
-    }
-    if (x + width > W - SNAP_THRESHOLD && y < SNAP_THRESHOLD) {
-      return { x: W / 2, y: 0, w: W / 2, h: H / 2 };
-    }
-    if (x < SNAP_THRESHOLD && y + height > H - SNAP_THRESHOLD) {
-      return { x: 0, y: H / 2, w: W / 2, h: H / 2 };
-    }
-    if (x + width > W - SNAP_THRESHOLD && y + height > H - SNAP_THRESHOLD) {
-      return { x: W / 2, y: H / 2, w: W / 2, h: H / 2 };
-    }
-
-    // Check Edges
-    if (x < SNAP_THRESHOLD) {
-      return { x: 0, y: 0, w: W / 2, h: H };
-    }
-    if (x + width > W - SNAP_THRESHOLD) {
-      return { x: W / 2, y: 0, w: W / 2, h: H };
-    }
-    if (y < SNAP_THRESHOLD) {
-      return { x: 0, y: 0, w: W, h: H / 2 };
-    }
-    if (y + height > H - SNAP_THRESHOLD) {
-      return { x: 0, y: H / 2, w: W, h: H / 2 };
-    }
-
+    if (x < SNAP_THRESHOLD && y < SNAP_THRESHOLD) return { x: 0, y: 0, w: W / 2, h: H / 2 };
+    if (x + width > W - SNAP_THRESHOLD && y < SNAP_THRESHOLD) return { x: W / 2, y: 0, w: W / 2, h: H / 2 };
+    if (x < SNAP_THRESHOLD && y + height > H - SNAP_THRESHOLD) return { x: 0, y: H / 2, w: W / 2, h: H / 2 };
+    if (x + width > W - SNAP_THRESHOLD && y + height > H - SNAP_THRESHOLD) return { x: W / 2, y: H / 2, w: W / 2, h: H / 2 };
+    if (x < SNAP_THRESHOLD) return { x: 0, y: 0, w: W / 2, h: H };
+    if (x + width > W - SNAP_THRESHOLD) return { x: W / 2, y: 0, w: W / 2, h: H };
+    if (y < SNAP_THRESHOLD) return { x: 0, y: 0, w: W, h: H / 2 };
+    if (y + height > H - SNAP_THRESHOLD) return { x: 0, y: H / 2, w: W, h: H / 2 };
     return null;
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
-    
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    });
-    e.preventDefault();
-  };
-
-  const handleResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    setIsResizing(true);
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: position.width,
-      height: position.height
-    });
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMove = (e: MouseEvent) => {
       if (isDragging) {
         const newX = Math.max(0, Math.min(e.clientX - dragStart.x, containerBounds.width - position.width));
         const newY = Math.max(0, Math.min(e.clientY - dragStart.y, containerBounds.height - position.height));
-        
         const snapZone = getSnapZone(newX, newY, position.width, position.height);
         onSnapPreview(snapZone);
-        
-        onPositionChange({
-          ...position,
-          x: newX,
-          y: newY
-        });
+        onPositionChange({ ...position, x: newX, y: newY });
       } else if (isResizing) {
         const deltaX = e.clientX - resizeStart.x;
         const deltaY = e.clientY - resizeStart.y;
-        
-        const newWidth = Math.max(200, Math.min(resizeStart.width + deltaX, containerBounds.width - position.x));
-        const newHeight = Math.max(150, Math.min(resizeStart.height + deltaY, containerBounds.height - position.y));
-        
         onPositionChange({
           ...position,
-          width: newWidth,
-          height: newHeight
+          width: Math.max(200, resizeStart.width + deltaX),
+          height: Math.max(150, resizeStart.height + deltaY),
         });
       }
     };
-
-    const handleMouseUp = () => {
-      if (isDragging) {
-        const snapZone = getSnapZone(position.x, position.y, position.width, position.height);
-        if (snapZone) {
-          onPositionChange({
-            x: snapZone.x,
-            y: snapZone.y,
-            width: snapZone.w,
-            height: snapZone.h
-          });
-        }
-        onSnapPreview(null);
-      }
+    const stop = () => {
       setIsDragging(false);
       setIsResizing(false);
+      onSnapPreview(null);
     };
-
     if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener("mousemove", handleMove);
+      document.addEventListener("mouseup", stop);
     }
-
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", stop);
     };
-  }, [isDragging, isResizing, dragStart, position, containerBounds, onPositionChange, onSnapPreview, resizeStart]);
+  }, [isDragging, isResizing, dragStart, resizeStart, position]);
 
   return (
     <div
-      ref={panelRef}
-      className={`absolute border shadow-md cursor-move select-none ${className}`}
+      className={`absolute border rounded-lg overflow-hidden shadow-lg cursor-move ${className}`}
       style={{
         left: position.x,
         top: position.y,
         width: position.width,
         height: position.height,
-        zIndex: isDragging ? 1000 : 1
+        borderColor: COLORS.gold,
+        boxShadow: `0 4px 20px rgba(218,165,32,0.4)`,
+        backgroundColor: COLORS.cream,
       }}
-      onMouseDown={handleMouseDown}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+      }}
     >
       {children}
-      
       <div
-        className="resize-handle absolute bottom-0 right-0 w-4 h-4 bg-gray-400 cursor-se-resize hover:bg-gray-600 opacity-50 hover:opacity-100"
-        onMouseDown={handleResizeMouseDown}
+        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-70"
         style={{
-          clipPath: 'polygon(100% 0%, 0% 100%, 100% 100%)'
+          backgroundColor: COLORS.deepGold,
+          clipPath: "polygon(100% 0%, 0% 100%, 100% 100%)",
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          setIsResizing(true);
+          setResizeStart({ x: e.clientX, y: e.clientY, width: position.width, height: position.height });
         }}
       />
     </div>
   );
 };
 
-const MainPanel: React.FC = () => {
-  const [containerBounds, setContainerBounds] = useState<ContainerBounds>({ width: 800, height: 600 });
+/* ----------------- MAIN PANEL ----------------- */
+const MainPanelGolden: React.FC = () => {
+  const [containerBounds, setContainerBounds] = useState({ width: 800, height: 600 });
   const [snapPreview, setSnapPreview] = useState<SnapZone | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [editorPos, setEditorPos] = useState<Position>({
-    x: 0,
-    y: 0,
-    width: 320,
-    height: 600,
-  });
-
-  const [visualPos, setVisualPos] = useState<Position>({
-    x: 320,
-    y: 0,
-    width: 240,
-    height: 360,
-  });
-
-  const [drawingPos, setDrawingPos] = useState<Position>({
-    x: 560,
-    y: 0,
-    width: 240,   
-    height: 360,
-  });
+  const [editorPos, setEditorPos] = useState<Position>({ x: 0, y: 0, width: 320, height: 600 });
+  const [visualPos, setVisualPos] = useState<Position>({ x: 320, y: 0, width: 240, height: 360 });
+  const [drawingPos, setDrawingPos] = useState<Position>({ x: 560, y: 0, width: 240, height: 360 });
 
   useEffect(() => {
     const updateBounds = () => {
@@ -329,91 +240,65 @@ const MainPanel: React.FC = () => {
         setContainerBounds({ width: rect.width, height: rect.height });
       }
     };
-
     updateBounds();
-    window.addEventListener('resize', updateBounds);
-    return () => window.removeEventListener('resize', updateBounds);
+    window.addEventListener("resize", updateBounds);
+    return () => window.removeEventListener("resize", updateBounds);
   }, []);
 
-  useEffect(() => {
-    setEditorPos(prev => ({
-      ...prev,
-      width: Math.min(prev.width, containerBounds.width),
-      height: Math.min(prev.height, containerBounds.height)
-    }));
-    setVisualPos(prev => ({
-      ...prev,
-      width: Math.min(prev.width, containerBounds.width),
-      height: Math.min(prev.height, containerBounds.height)
-    }));
-    setDrawingPos(prev => ({
-      ...prev,
-      width: Math.min(prev.width, containerBounds.width),
-      height: Math.min(prev.height, containerBounds.height)
-    }));
-  }, [containerBounds]);
-
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="flex-1 relative bg-gray-200 overflow-hidden"
+      className="flex-1 relative overflow-hidden"
+      style={{
+        backgroundColor: COLORS.cream,
+        backgroundImage:
+          "radial-gradient(circle at 20px 20px, rgba(255,215,0,0.15) 2px, transparent 0)",
+        backgroundSize: "40px 40px",
+      }}
     >
       {snapPreview && (
         <div
-          className="absolute border-2 border-blue-400 bg-blue-200/30 rounded pointer-events-none transition-all duration-100 z-50"
+          className="absolute rounded pointer-events-none transition-all duration-100 z-50"
           style={{
             left: snapPreview.x,
             top: snapPreview.y,
             width: snapPreview.w,
             height: snapPreview.h,
+            border: `2px solid ${COLORS.gold}`,
+            backgroundColor: "rgba(255,215,0,0.15)",
+            boxShadow: `0 0 20px rgba(255,215,0,0.6)`,
           }}
         />
       )}
 
-      {/* Your EditorPanel Component */}
       <DraggablePanel
         position={editorPos}
         onPositionChange={setEditorPos}
         onSnapPreview={setSnapPreview}
         containerBounds={containerBounds}
-        className="bg-white"
       >
         <EditorPanel />
       </DraggablePanel>
 
-      {/* Your VisualPanel Component */}
       <DraggablePanel
         position={visualPos}
         onPositionChange={setVisualPos}
         onSnapPreview={setSnapPreview}
         containerBounds={containerBounds}
-        className="bg-gray-50"
       >
         <VisualPanel />
       </DraggablePanel>
 
-      {/* Optional Drawing Panel - replace with your own if needed */}
       <DraggablePanel
         position={drawingPos}
         onPositionChange={setDrawingPos}
         onSnapPreview={setSnapPreview}
         containerBounds={containerBounds}
-        className="bg-green-50"
       >
         <DrawingPanel />
       </DraggablePanel>
-
-      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-lg shadow-lg text-sm max-w-xs z-10">
-        <div className="font-semibold mb-2">Snap Zones:</div>
-        <div className="text-xs space-y-1">
-          <div>• Drag panels near edges to snap (50% size)</div>
-          <div>• Drag to corners for quarter-screen snap</div>
-          <div>• Blue preview shows snap target</div>
-          <div>• Resize from bottom-right corner</div>
-        </div>
-      </div>
     </div>
   );
 };
 
-export default MainPanel;
+export default MainPanelGolden;
