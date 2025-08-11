@@ -178,7 +178,7 @@ const DrawingBoard: React.FC = () => {
         ctx.shadowBlur = 0;
         break;
       case 'pen':
-        // Pen: crisp, precise lines
+        // Pen: crisp, precise lines detailed ones 
         ctx.shadowBlur = 0;
         ctx.beginPath();
         ctx.moveTo(path.points[0].x, path.points[0].y);
@@ -250,7 +250,7 @@ const DrawingBoard: React.FC = () => {
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
-    // Clear and set black background
+    // Clear and set black background to ensure visual hirearchy
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
