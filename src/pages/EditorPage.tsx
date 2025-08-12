@@ -250,7 +250,7 @@ const DrawingBoard: React.FC = () => {
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
-    // Clear and set black background to ensure visual hirearchy
+    // Clear and set black background to ensure visual hirearchy 
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -307,7 +307,7 @@ const DrawingBoard: React.FC = () => {
         ctx.stroke();
         break;
       case 'eraser':
-        // Show eraser preview
+        // Show eraser preview for easier acess
         ctx.strokeStyle = '#ff4444';
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
