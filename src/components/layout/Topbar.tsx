@@ -42,7 +42,7 @@ const Topbar: React.FC<TopbarProps> = ({ toggleSidebar }) => {
 
       {/* Right section - Dashboard and Auth */}
       <div className="flex items-center gap-3 z-10">
-        <button className="text-white hover:text-gray-300 font-medium px-6 py-2 rounded-full border border-gray-600 hover:border-white transition-all duration-300 transform hover:scale-105 hover:bg-white hover:bg-opacity-10 relative overflow-hidden group">
+        <button className="text-white hover:text-black font-medium px-6 py-2 rounded-full border border-gray-600 hover:border-white transition-all duration-300 transform hover:scale-105 hover:bg-white hover:bg-opacity-10 relative overflow-hidden group">
           <span className="relative z-10">Dashboard</span>
           <div className="absolute inset-0 bg-gradient-to-r from-white to-gray-200 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
         </button>
